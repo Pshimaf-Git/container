@@ -24,7 +24,7 @@ func (d *Deque) Len() int {
 
 // IsEmpty returns a boolean value that signals that the list is empty
 func (d *Deque) IsEmpty() bool {
-	return d.Len() == 0 || d == nil
+	return d.Len() == 0
 }
 
 // PushFront adds the listed values ​​to the front of the queue
