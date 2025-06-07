@@ -49,10 +49,10 @@ func (d *Deque) PopFront() (any, bool) {
 		return nil, false
 	}
 
-	v := d.list.Front().Value
-	d.list.Remove(d.list.Front())
+	elem := d.list.Front()
+	defer d.list.Remove(elem)
 
-	return v, true
+	return elem.Value, true
 }
 
 // PopBack retrieves and removes the last element from the queue, a
@@ -62,10 +62,10 @@ func (d *Deque) PopBack() (any, bool) {
 		return nil, false
 	}
 
-	v := d.list.Back().Value
-	d.list.Remove(d.list.Back())
+	elem := d.list.Back()
+	defer d.list.Remove(elem)
 
-	return v, true
+	return elem.Value, true
 }
 
 // Clear removes all elements from queue
