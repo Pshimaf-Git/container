@@ -9,6 +9,57 @@ import (
 	"testing"
 )
 
+func Test_revers(t *testing.T) {
+	tests := []struct {
+		name string
+		a    []any
+		want []any
+	}{
+		{
+			name: "base case",
+			a:    []any{1, 2, 3},
+			want: []any{3, 2, 1},
+		},
+
+		{
+			name: "empty input slice",
+			a:    []any{},
+			want: []any{},
+		},
+
+		{
+			name: "nil input slice",
+			a:    nil,
+			want: nil,
+		},
+
+		{
+			name: "\"palindrom\" input slice",
+			a:    []any{3, 0, 0, 3},
+			want: []any{3, 0, 0, 3},
+		},
+
+		{
+			name: "base-case",
+			a:    []any{1, '2', "3"},
+			want: []any{"3", '2', 1},
+		},
+
+		{
+			name: "mixed input slice",
+			a:    []any{3, "hello", complex64(3.43 * 23), uint(34), nil, '1'},
+			want: []any{'1', nil, uint(34), complex64(3.43 * 23), "hello", 3},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := revers(tt.a); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("revers() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDeque_Len(t *testing.T) {
 	fullDeque := New()
 	fullDeque.PushFront(1, 2, 3, 4)
@@ -74,6 +125,10 @@ func TestDeque_ToArray(t *testing.T) {
 	mixedValues := []any{1, uint(2), 0.57, 4, 5 * 2i, false, 7, true, "9", int16(10)}
 	mixed.PushBack(mixedValues...)
 
+	basic := New()
+	values := []any{1, "hello"}
+	basic.PushBack(values...)
+
 	tests := []struct {
 		name string
 		d    *Deque
@@ -89,6 +144,12 @@ func TestDeque_ToArray(t *testing.T) {
 			name: "mixed types",
 			d:    mixed,
 			want: mixedValues,
+		},
+
+		{
+			name: "base-case",
+			d:    basic,
+			want: values,
 		},
 	}
 	for _, tt := range tests {

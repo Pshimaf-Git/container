@@ -2,14 +2,9 @@
 // ended queue
 package deque
 
-import "container/list"
-
-// PushBack — добавление в конец очереди.
-// PushFront — добавление в начало очереди.
-// PopBack — выборка из конца очереди.
-// PopFront — выборка из начала очереди.
-// IsEmpty — проверка наличия элементов.
-// Clear — очистка.
+import (
+	"container/list"
+)
 
 // structure of a dequeue
 type Deque struct {
@@ -22,26 +17,33 @@ func New() *Deque {
 	}
 }
 
+// Len returns the total length of all elements in the queue
 func (d *Deque) Len() int {
 	return d.list.Len()
 }
 
+// IsEmpty returns a boolean value that signals that the list is empty
 func (d *Deque) IsEmpty() bool {
 	return d.Len() == 0 || d == nil
 }
 
+// PushFront adds the listed values ​​to the front of the queue
 func (d *Deque) PushFront(values ...any) {
+	values = revers(values)
 	for _, v := range values {
 		d.list.PushFront(v)
 	}
 }
 
+// PushBack adds the listed values ​​to the end of the queue
 func (d *Deque) PushBack(values ...any) {
 	for _, v := range values {
 		d.list.PushBack(v)
 	}
 }
 
+// PopFront retrieves and removes the first element from the queue, a
+// boolean value signals that the resulting value is not a zero value
 func (d *Deque) PopFront() (any, bool) {
 	if d.IsEmpty() {
 		return nil, false
@@ -50,6 +52,8 @@ func (d *Deque) PopFront() (any, bool) {
 	return d.list.Front().Value, true
 }
 
+// PopBack retrieves and removes the last element from the queue, a
+// boolean value signals that the resulting value is not a zero value
 func (d *Deque) PopBack() (any, bool) {
 	if d.IsEmpty() {
 		return nil, false
@@ -58,6 +62,7 @@ func (d *Deque) PopBack() (any, bool) {
 	return d.list.Back().Value, true
 }
 
+// Clear removes all elements from queue
 func (d *Deque) Clear() int {
 	cleared := 0
 	if d.IsEmpty() {
@@ -72,6 +77,7 @@ func (d *Deque) Clear() int {
 	return cleared
 }
 
+// ToArray converts all values ​​from a queue into an array
 func (d *Deque) ToArray() []any {
 	if d.IsEmpty() {
 		return []any{}
@@ -79,10 +85,28 @@ func (d *Deque) ToArray() []any {
 
 	arr := make([]any, 0, d.Len())
 
-	for range d.Len() {
-		arr = append(arr, d.list.Front().Value)
-		d.list.Remove(d.list.Front())
+	curr := d.list.Front()
+
+	for curr.Next() != nil {
+		arr = append(arr, curr.Value)
+		curr = curr.Next()
 	}
 
+	// Add last element value
+	arr = append(arr, curr.Value)
+
 	return arr
+}
+
+// reverse returns a reversed copy of the input slide
+func revers(a []any) []any {
+	if len(a) == 0 {
+		return a
+	}
+
+	res := a
+	for i, j := 0, len(res)-1; i < j; i, j = i+1, j-1 {
+		res[i], res[j] = res[j], res[i]
+	}
+	return res
 }
