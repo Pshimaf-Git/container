@@ -1,6 +1,7 @@
 package deque
 
 import (
+	"container/list"
 	"testing"
 	"time"
 
@@ -356,6 +357,225 @@ func TestConcurrency(t *testing.T) {
 	}
 }
 
+func TestDeque_ContainsElement(t *testing.T) {
+	tests := []struct {
+		name     string
+		setup    func() (*Deque[int], *list.Element, bool)
+		expected bool
+	}{
+		{
+			name: "element exists",
+			setup: func() (*Deque[int], *list.Element, bool) {
+				d := New[int]()
+				e := d.list.PushBack(1)
+				d.list.PushBack(2)
+				return d, e, true
+			},
+			expected: true,
+		},
+		{
+			name: "element doesn't exist",
+			setup: func() (*Deque[int], *list.Element, bool) {
+				d := New[int]()
+				d.list.PushBack(1)
+				d.list.PushBack(2)
+				return d, &list.Element{Value: 3}, false
+			},
+			expected: false,
+		},
+		{
+			name: "empty deque",
+			setup: func() (*Deque[int], *list.Element, bool) {
+				return New[int](), &list.Element{Value: 1}, false
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d, e, _ := tt.setup()
+			assert.Equal(t, tt.expected, d.ContainsElement(e))
+		})
+	}
+}
+
+func TestDeque_Reverse(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		expected []int
+	}{
+		{
+			name:     "multiple elements",
+			input:    []int{1, 2, 3, 4},
+			expected: []int{4, 3, 2, 1},
+		},
+		{
+			name:     "single element",
+			input:    []int{1},
+			expected: []int{1},
+		},
+		{
+			name:     "empty deque",
+			input:    []int{},
+			expected: []int{},
+		},
+		{
+			name:     "two elements",
+			input:    []int{1, 2},
+			expected: []int{2, 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := New[int]()
+			for _, v := range tt.input {
+				d.list.PushBack(v)
+			}
+
+			d.Reverse()
+			assert.Equal(t, tt.expected, d.ToArray())
+		})
+	}
+}
+
+func TestDeque_Iterator(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		expected []int
+	}{
+		{
+			name:     "normal iteration",
+			input:    []int{1, 2, 3},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "empty deque",
+			input:    []int{},
+			expected: []int{},
+		},
+		{
+			name:     "single element",
+			input:    []int{1},
+			expected: []int{1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := New[int]()
+			for _, v := range tt.input {
+				d.list.PushBack(v)
+			}
+
+			var result = []int{}
+			for v := range d.Iterator() {
+				result = append(result, v)
+			}
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestDeque_DescendingIterator(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		expected []int
+	}{
+		{
+			name:     "normal reverse iteration",
+			input:    []int{1, 2, 3},
+			expected: []int{3, 2, 1},
+		},
+		{
+			name:     "empty deque",
+			input:    []int{},
+			expected: []int{},
+		},
+		{
+			name:     "single element",
+			input:    []int{1},
+			expected: []int{1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := New[int]()
+			for _, v := range tt.input {
+				d.list.PushBack(v)
+			}
+
+			var result = []int{}
+			for v := range d.DescendingeIterator() {
+				result = append(result, v)
+			}
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestDeque_Rotate(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		n        int
+		expected []int
+	}{
+		{
+			name:     "rotate right by 1",
+			input:    []int{1, 2, 3, 4},
+			n:        1,
+			expected: []int{4, 1, 2, 3},
+		},
+		{
+			name:     "rotate left by 1",
+			input:    []int{1, 2, 3, 4},
+			n:        -1,
+			expected: []int{2, 3, 4, 1},
+		},
+		{
+			name:     "rotate by length (no change)",
+			input:    []int{1, 2, 3, 4},
+			n:        4,
+			expected: []int{1, 2, 3, 4},
+		},
+		{
+			name:     "rotate by multiple lengths",
+			input:    []int{1, 2, 3, 4},
+			n:        5, // same as rotate by 1
+			expected: []int{4, 1, 2, 3},
+		},
+		{
+			name:     "empty deque",
+			input:    []int{},
+			n:        1,
+			expected: []int{},
+		},
+		{
+			name:     "single element",
+			input:    []int{1},
+			n:        1,
+			expected: []int{1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := New[int]()
+			for _, v := range tt.input {
+				d.list.PushBack(v)
+			}
+
+			d.Rotate(tt.n)
+			assert.Equal(t, tt.expected, d.ToArray())
+		})
+	}
+}
 func TestConcurrentAccess(t *testing.T) {
 	d := New[int]()
 	stop := make(chan struct{})
