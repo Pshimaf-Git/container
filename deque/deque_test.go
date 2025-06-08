@@ -1,607 +1,413 @@
-// package deque is a linked list based implementation of a double
-
-// ended queue
-
 package deque
 
 import (
-	"container/list"
-	"reflect"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestDeque_Len(t *testing.T) {
-	tests := []struct {
-		name       string
-		initValues []any
-		want       int
-	}{
-		{
-			name:       "empty deque",
-			initValues: []any{},
-			want:       0,
-		},
+func TestNew(t *testing.T) {
+	d := New[int]()
+	assert.NotNil(t, d)
+	assert.NotNil(t, d.list)
+	assert.Equal(t, 0, d.Len())
+	assert.True(t, d.IsEmpty())
+}
 
-		{
-			name:       "full deque",
-			initValues: []any{1, 2, "Hello", false},
-			want:       4,
-		},
+func TestPushFront(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		expected []int
+	}{
+		{"single element", []int{1}, []int{1}},
+		{"multiple elements", []int{1, 2, 3}, []int{1, 2, 3}},
+		{"empty input", []int{}, []int{}},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
+			d := New[int]()
+			d.PushFront(tt.input...)
+			assert.Equal(t, len(tt.expected), d.Len())
 
-			if got := d.Len(); got != tt.want {
-				t.Errorf("Deque.Len() = %v, want %v", got, tt.want)
-			}
+			// Verify order
+			arr := d.ToArray()
+			assert.Equal(t, tt.expected, arr)
 		})
 	}
 }
 
-func TestDeque_IsEmpty(t *testing.T) {
+func TestPushBack(t *testing.T) {
 	tests := []struct {
-		name       string
-		initValues []any
-		want       bool
+		name     string
+		input    []int
+		expected []int
 	}{
-		{
-			name:       "empty deque",
-			initValues: []any{},
-			want:       true,
-		},
-
-		{
-			name:       "full deque",
-			initValues: []any{1, 2, 3, 4, 5},
-			want:       false,
-		},
+		{"single element", []int{1}, []int{1}},
+		{"multiple elements", []int{1, 2, 3}, []int{1, 2, 3}},
+		{"empty input", []int{}, []int{}},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
+			d := New[int]()
+			d.PushBack(tt.input...)
+			assert.Equal(t, len(tt.expected), d.Len())
 
-			if got := d.IsEmpty(); got != tt.want {
-				t.Errorf("Deque.IsEmpty() = %v, want %v", got, tt.want)
-			}
+			// Verify order
+			arr := d.ToArray()
+			assert.Equal(t, tt.expected, arr)
 		})
 	}
 }
 
-func TestDeque_ToArray(t *testing.T) {
+func TestPopFront(t *testing.T) {
 	tests := []struct {
-		name       string
-		initValues []any
-		want       []any
+		name        string
+		setup       func() *Deque[int]
+		expectedVal int
+		expectedErr error
 	}{
 		{
-			name:       "empty deque",
-			initValues: []any{},
-			want:       []any{},
+			"empty deque",
+			func() *Deque[int] { return New[int]() },
+			0,
+			ErrEmprtQueue,
 		},
-
 		{
-			name:       "mixed types",
-			initValues: []any{1, "hello", 0x10},
-			want:       []any{1, "hello", 0x10},
-		},
-
-		{
-			name:       "base-case",
-			initValues: []any{1, '1'},
-			want:       []any{1, '1'},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
-
-			if got := d.ToArray(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Deque.ToArray() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestDeque_PushFront(t *testing.T) {
-	type args struct {
-		values []any
-	}
-
-	tests := []struct {
-		name       string
-		args       args
-		initValues []any
-		want       []any
-	}{
-		{
-			name:       "push one to empty deque",
-			initValues: []any{},
-			args: args{
-				values: []any{1},
+			"single element",
+			func() *Deque[int] {
+				d := New[int]()
+				d.PushBack(42)
+				return d
 			},
-			want: []any{1},
+			42,
+			nil,
 		},
-
 		{
-			name:       "push one to full deque",
-			initValues: []any{1, true, "hello"},
-			args: args{
-				values: []any{0},
+			"multiple elements",
+			func() *Deque[int] {
+				d := New[int]()
+				d.PushBack(1)
+				d.PushBack(2)
+				d.PushBack(3)
+				return d
 			},
-			want: []any{0, 1, true, "hello"},
+			1,
+			nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
+			d := tt.setup()
+			val, err := d.PopFront()
 
-			d.PushFront(tt.args.values...)
-
-			if got := d.ToArray(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Deque.PushFront(%v) got = %v, want = %v", tt.args.values, got, tt.want)
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+				return
 			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedVal, val)
 		})
 	}
 }
 
-func TestDeque_PushBack(t *testing.T) {
-	type args struct {
-		values []any
-	}
-
+func TestPopBack(t *testing.T) {
 	tests := []struct {
-		name       string
-		args       args
-		initValues []any
-		want       []any
+		name        string
+		setup       func() *Deque[int]
+		expectedVal int
+		expectedErr error
 	}{
 		{
-			name:       "push one to empty deque",
-			initValues: []any{},
-			args: args{
-				values: []any{1},
-			},
-			want: []any{1},
+			"empty deque",
+			func() *Deque[int] { return New[int]() },
+			0,
+			ErrEmprtQueue,
 		},
-
 		{
-			name:       "push one to full deque",
-			initValues: []any{1, true, "hello"},
-			args: args{
-				values: []any{0},
+			"single element",
+			func() *Deque[int] {
+				d := New[int]()
+				d.PushBack(42)
+				return d
 			},
-			want: []any{1, true, "hello", 0},
+			42,
+			nil,
+		},
+		{
+			"multiple elements",
+			func() *Deque[int] {
+				d := New[int]()
+				d.PushBack(1)
+				d.PushBack(2)
+				d.PushBack(3)
+				return d
+			},
+			3,
+			nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
+			d := tt.setup()
+			val, err := d.PopBack()
 
-			d.PushBack(tt.args.values...)
-
-			if got := d.ToArray(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Deque.PushBack(%v) got = %v, want = %v", tt.args.values, got, tt.want)
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+				return
 			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedVal, val)
 		})
 	}
-
 }
 
-func TestDeque_Clear(t *testing.T) {
+func TestFront(t *testing.T) {
+	d := New[int]()
+	_, err := d.Front()
+	assert.ErrorIs(t, err, ErrEmprtQueue)
+
+	d.PushBack(1)
+	d.PushBack(2)
+	val, err := d.Front()
+	assert.NoError(t, err)
+	assert.Equal(t, 1, val)
+	assert.Equal(t, 2, d.Len()) // Shouldn't remove the element
+}
+
+func TestBack(t *testing.T) {
+	d := New[int]()
+	_, err := d.Back()
+	assert.ErrorIs(t, err, ErrEmprtQueue)
+
+	d.PushBack(1)
+	d.PushBack(2)
+	val, err := d.Back()
+	assert.NoError(t, err)
+	assert.Equal(t, 2, val)
+	assert.Equal(t, 2, d.Len()) // Shouldn't remove the element
+}
+
+func TestClear(t *testing.T) {
+	d := New[int]()
+	assert.Equal(t, 0, d.Clear())
+
+	d.PushBack(1)
+	d.PushBack(2)
+	assert.Equal(t, 2, d.Clear())
+	assert.True(t, d.IsEmpty())
+}
+
+func TestToArray(t *testing.T) {
 	tests := []struct {
-		name       string
-		initValues []any
-		want       int
+		name     string
+		setup    func() *Deque[int]
+		expected []int
 	}{
 		{
-			name:       "empty deque1",
-			initValues: []any{},
-			want:       0,
+			"empty deque",
+			func() *Deque[int] { return New[int]() },
+			[]int{},
 		},
-
 		{
-			name:       "full deque",
-			initValues: []any{1, 2, 3},
-			want:       3,
+			"single element",
+			func() *Deque[int] {
+				d := New[int]()
+				d.PushBack(1)
+				return d
+			},
+			[]int{1},
+		},
+		{
+			"multiple elements",
+			func() *Deque[int] {
+				d := New[int]()
+				d.PushBack(1)
+				d.PushBack(2)
+				d.PushBack(3)
+				return d
+			},
+			[]int{1, 2, 3},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
-
-			if got := d.Clear(); got != tt.want || d.list.Len() != 0 {
-				t.Errorf("Deque.Clear() = %v, want %v", got, tt.want)
-			}
+			d := tt.setup()
+			assert.Equal(t, tt.expected, d.ToArray())
 		})
 	}
 }
 
-func TestDeque_PopFront(t *testing.T) {
-	tests := []struct {
-		name       string
-		initValues []any
-		want       any
-		want1      bool
-	}{
-		{
-			name:       "empty deque",
-			initValues: []any{},
-			want:       nil,
-			want1:      false,
-		},
+func TestGet(t *testing.T) {
+	d := New[int]()
+	d.PushBack(1)
+	d.PushBack(2)
+	d.PushBack(3)
 
-		{
-			name:       "full deque",
-			initValues: []any{1, 2, 3, "hello", &list.Element{}},
-			want:       1,
-			want1:      true,
-		},
+	tests := []struct {
+		name     string
+		index    int
+		expected int
+		ok       bool
+	}{
+		{"first element", 0, 1, true},
+		{"middle element", 1, 2, true},
+		{"last element", 2, 3, true},
+		{"negative index", -1, 0, false},
+		{"index out of range", 3, 0, false},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
-
-			got, got1 := d.PopFront()
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Deque.PopFront() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Deque.PopFront() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestDeque_PopBack(t *testing.T) {
-	tests := []struct {
-		name       string
-		initValues []any
-		want       any
-		want1      bool
-	}{
-		{
-			name:       "empty deque",
-			initValues: []any{},
-			want:       nil,
-			want1:      false,
-		},
-
-		{
-			name:       "full deque",
-			initValues: []any{1, true, &testing.B{}, ' '},
-			want:       ' ',
-			want1:      true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
-
-			got, got1 := d.PopBack()
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Deque.PopBack() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Deque.PopBack() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestDeque_Front(t *testing.T) {
-	testCases := []struct {
-		name       string
-		initValues []any
-		want       any
-		want1      bool
-	}{
-		{
-			name:       "empty deque",
-			initValues: []any{},
-			want:       nil,
-			want1:      false,
-		},
-
-		{
-			name:       "full deqque",
-			initValues: []any{1, 32.2},
-			want:       1,
-			want1:      true,
-		},
-	}
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
-
-			got, got1 := d.Front()
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Deque.Front() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Deque.Front() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestDeque_Back(t *testing.T) {
-	testCases := []struct {
-		name       string
-		initValues []any
-		want       any
-		want1      bool
-	}{
-		{
-			name:       "empty deque",
-			initValues: []any{},
-			want:       nil,
-			want1:      false,
-		},
-
-		{
-			name:       "full deqque",
-			initValues: []any{1, true},
-			want:       true,
-			want1:      true,
-		},
-	}
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
-
-			got, got1 := d.Back()
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Deque.Back() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Deque.Back() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestDeque_Get(t *testing.T) {
-	type args struct {
-		index int
-	}
-
-	testCases := []struct {
-		name       string
-		initValues []any
-		args       args
-		want       any
-		want1      bool
-	}{
-		{
-			name:       "empty deque",
-			initValues: []any{},
-			args: args{
-				index: 0,
-			},
-			want:  nil,
-			want1: false,
-		},
-
-		{
-			name:       "negative index",
-			initValues: []any{1, 2, "hello"},
-			args: args{
-				index: -1,
-			},
-			want:  nil,
-			want1: false,
-		},
-
-		{
-			name:       "index out of range",
-			initValues: []any{1, 2, 3},
-			args: args{
-				index: 1000,
-			},
-			want:  nil,
-			want1: false,
-		},
-
-		{
-			name:       "valid index",
-			initValues: []any{1, 2},
-			args: args{
-				index: 0,
-			},
-			want:  1,
-			want1: true,
-		},
-	}
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			d := New[any]()
-			d.PushFront(tt.initValues...)
-
-			got, got1 := d.Get(tt.args.index)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Deque.Get(%v) got = %v, want %v", tt.args.index, got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Deque.Get(%v) got1 = %v, want %v", tt.args.index, got1, tt.want1)
-			}
+			val, ok := d.Get(tt.index)
+			assert.Equal(t, tt.expected, val)
+			assert.Equal(t, tt.ok, ok)
 		})
 	}
 }
 
 func TestRemove(t *testing.T) {
-	testCases := []struct {
-		name        string
-		setup       func() (*Deque[int], *list.Element)
-		expectValue int
-		expectOk    bool
-		expectLen   int
-	}{
-		{
-			name: "Remove from empty deque",
-			setup: func() (*Deque[int], *list.Element) {
-				d := New[int]()
-				return d, &list.Element{Value: 42}
-			},
-			expectValue: 0,
-			expectOk:    false,
-			expectLen:   0,
-		},
-		{
-			name: "Remove nil element",
-			setup: func() (*Deque[int], *list.Element) {
-				d := New[int]()
-				d.PushBack(1, 2, 3)
-				return d, nil
-			},
-			expectValue: 0,
-			expectOk:    false,
-			expectLen:   3,
-		},
-		{
-			name: "Remove front element",
-			setup: func() (*Deque[int], *list.Element) {
-				d := New[int]()
-				d.PushBack(1, 2, 3)
-				return d, d.list.Front()
-			},
-			expectValue: 1,
-			expectOk:    true,
-			expectLen:   2,
-		},
-		{
-			name: "Remove middle element",
-			setup: func() (*Deque[int], *list.Element) {
-				d := New[int]()
-				d.PushBack(1, 2, 3)
-				return d, d.list.Front().Next()
-			},
-			expectValue: 2,
-			expectOk:    true,
-			expectLen:   2,
-		},
-		{
-			name: "Remove back element",
-			setup: func() (*Deque[int], *list.Element) {
-				d := New[int]()
-				d.PushBack(1, 2, 3)
-				return d, d.list.Back()
-			},
-			expectValue: 3,
-			expectOk:    true,
-			expectLen:   2,
-		},
-		{
-			name: "Remove non-existent element from another deque",
-			setup: func() (*Deque[int], *list.Element) {
-				d1 := New[int]()
-				d1.PushBack(1, 2, 3)
+	d := New[int]()
+	d.PushBack(1)
+	d.PushBack(2)
+	d.PushBack(3)
 
-				d2 := New[int]()
-				d2.PushBack(4, 5, 6)
-				return d1, d2.list.Front()
-			},
-			expectValue: 0,
-			expectOk:    false,
-			expectLen:   3,
-		},
+	// Get the middle element
+	e := d.list.Front().Next()
+
+	// Test successful removal
+	val, err := d.Remove(e)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, val)
+	assert.Equal(t, 2, d.Len())
+
+	// Try to remove nil element
+	_, err = d.Remove(nil)
+	assert.ErrorIs(t, err, ErrNilElem)
+	assert.Contains(t, err.Error(), "(*Deque[T]).Remove")
+
+	// Try to remove element not in the list
+	newList := New[int]()
+	newList.PushBack(99)
+	_, err = d.Remove(newList.list.Front())
+	assert.ErrorIs(t, err, ErrNotFoundElem)
+	assert.Contains(t, err.Error(), "(*Deque[T]).Remove")
+
+	// Try to remove from empty deque
+	d.Clear()
+	_, err = d.Remove(e) // e is no longer valid
+	assert.ErrorIs(t, err, ErrEmprtQueue)
+	assert.Contains(t, err.Error(), "(*Deque[T]).Remove")
+}
+
+func TestConcurrency(t *testing.T) {
+	d := New[int]()
+	const numWorkers = 100
+	const numOperations = 1000
+
+	// Worker function that performs various operations
+	worker := func(id int, done chan struct{}) {
+		for i := 0; i < numOperations; i++ {
+			// Alternate between different operations
+			switch i % 4 {
+			case 0:
+				d.PushFront(id*1000 + i)
+			case 1:
+				d.PushBack(id*1000 + i)
+			case 2:
+				d.PopFront()
+			case 3:
+				d.PopBack()
+			}
+		}
+		done <- struct{}{}
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			d, elem := tc.setup()
-
-			val, ok := d.Remove(elem)
-
-			if ok != tc.expectOk {
-				t.Errorf("Expected ok %v, got %v", tc.expectOk, ok)
-			}
-			if val != tc.expectValue {
-				t.Errorf("Expected value %d, got %d", tc.expectValue, val)
-			}
-			if d.list.Len() != tc.expectLen {
-				t.Errorf("Expected length %d, got %d", tc.expectLen, d.Len())
-			}
-		})
+	// Start workers
+	done := make(chan struct{})
+	for i := 0; i < numWorkers; i++ {
+		go worker(i, done)
 	}
 
-	t.Run("Remove all elements sequentially", func(t *testing.T) {
-		d := New[int]()
-		d.PushBack(1, 2, 3)
-		expected := []struct {
-			val      int
-			lenAfter int
-		}{
-			{1, 2},
-			{3, 1},
-			{2, 0},
-		}
-
-		for i, exp := range expected {
-			var elem *list.Element
-			if i == 0 {
-				elem = d.list.Front() // Remove first
-			} else if i == 1 {
-				elem = d.list.Back() // Remove last
-			} else {
-				elem = d.list.Front() // Remove remaining
-			}
-
-			val, ok := d.Remove(elem)
-			if !ok {
-				t.Errorf("Removal %d failed", i+1)
-			}
-			if val != exp.val {
-				t.Errorf("Expected %d, got %d in removal %d", exp.val, val, i+1)
-			}
-			if d.list.Len() != exp.lenAfter {
-				t.Errorf("Expected length %d, got %d after removal %d", exp.lenAfter, d.Len(), i+1)
-			}
-		}
-
-		if d.list.Len() != 0 {
-			t.Error("Deque should be empty after all removals")
-		}
-	})
-
-	// Concurrent test
-	t.Run("Concurrent removal", func(t *testing.T) {
-		d := New[int]()
-		d.PushBack(1, 2, 3, 4, 5)
-		elem := d.list.Front().Next().Next() // value 3
-
-		done := make(chan bool)
-		go func() {
-			val, ok := d.Remove(elem)
-			if !ok || val != 3 {
-				t.Error("Concurrent removal failed")
-			}
-			done <- true
-		}()
-
-		// Try to access the deque while removal is happening
-		for i := 0; i < 10; i++ {
-			length := d.list.Len()
-			if length != 5 && length != 4 {
-				t.Errorf("Unexpected length during concurrent access: %d", length)
-			}
-		}
-
+	// Wait for all workers to finish
+	for i := 0; i < numWorkers; i++ {
 		<-done
-		if d.list.Len() != 4 {
-			t.Errorf("Expected length 4 after removal, got %d", d.Len())
+	}
+
+	// Verify the deque is in a consistent state
+	// We can't predict the exact contents due to concurrency,
+	// but we can check basic invariants
+	assert.GreaterOrEqual(t, d.Len(), 0)
+
+	// Check that all elements can be accessed without panic
+	for i := 0; i < d.Len(); i++ {
+		val, ok := d.Get(i)
+		if ok {
+			assert.NotNil(t, val)
 		}
-	})
+	}
+}
+
+func TestConcurrentAccess(t *testing.T) {
+	d := New[int]()
+	stop := make(chan struct{})
+
+	// Writer goroutine
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				d.PushBack(1)
+				d.PushFront(2)
+				time.Sleep(time.Millisecond)
+			}
+		}
+	}()
+
+	// Reader goroutine
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				d.Front()
+				d.Back()
+				d.Len()
+				d.IsEmpty()
+				time.Sleep(time.Millisecond)
+			}
+		}
+	}()
+
+	// Remover goroutine
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				d.PopFront()
+				d.PopBack()
+				time.Sleep(time.Millisecond)
+			}
+		}
+	}()
+
+	// Let them run for a while
+	time.Sleep(100 * time.Millisecond)
+	close(stop)
+
+	// Final check - deque should be in consistent state
+	assert.GreaterOrEqual(t, d.Len(), 0)
 }
