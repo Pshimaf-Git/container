@@ -220,7 +220,7 @@ func (d *Deque[T]) Remove(e *list.Element) (T, bool) {
 	}
 
 	// Optimization: choosing which end to start the search from
-	pos := getElementPosition(d.list, e)
+	pos := d.GetElementPosition(e)
 	if pos < 0 {
 		return zeroval[T](), false
 	}
@@ -255,9 +255,9 @@ func (d *Deque[T]) Remove(e *list.Element) (T, bool) {
 }
 
 // Helper function for determining the position of an element
-func getElementPosition(l *list.List, e *list.Element) int {
+func (d *Deque[T]) GetElementPosition(e *list.Element) int {
 	pos := 0
-	for current := l.Front(); current != nil; current = current.Next() {
+	for current := d.list.Front(); current != nil; current = current.Next() {
 		if current == e {
 			return pos
 		}
