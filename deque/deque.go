@@ -4,7 +4,17 @@ package deque
 
 import (
 	"container/list"
+	"errors"
+	"fmt"
 	"sync"
+)
+
+var (
+	ErrNotFoundElem  = errors.New("not found element")
+	ErrTypeAssertion = errors.New("type assertion failed")
+	ErrEmprtQueue    = errors.New("queue is empty")
+	ErrInvalidIndex  = errors.New("invalid index")
+	ErrNilElem       = errors.New("element must not be nil")
 )
 
 // structure of a dequeue
@@ -64,74 +74,85 @@ func (d *Deque[T]) PushBack(values ...T) {
 
 // PopFront retrieves and removes the first element from the queue, a
 // boolean value signals that the resulting value is not a zero value
-func (d *Deque[T]) PopFront() (T, bool) {
+func (d *Deque[T]) PopFront() (T, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	const fancName = "(*Deque[T]).PopFront"
 
 	if d.list.Len() == 0 {
-		return zeroval[T](), false
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
 	}
 
 	elem := d.list.Front()
 	defer d.list.Remove(elem)
 
 	val, ok := elem.Value.(T)
-	return val, ok
+	if !ok {
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrTypeAssertion)
+	}
+	return val, nil
 }
 
 // PopBack retrieves and removes the last element from the queue, a
 // boolean value signals that the resulting value is not a zero value
-func (d *Deque[T]) PopBack() (T, bool) {
+func (d *Deque[T]) PopBack() (T, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	const fancName = "(*Deque[T]).PopBack"
 
 	if d.list.Len() == 0 {
-		return zeroval[T](), false
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
 	}
 
 	elem := d.list.Back()
 	defer d.list.Remove(elem)
 
 	val, ok := elem.Value.(T)
-	return val, ok
+	if !ok {
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrTypeAssertion)
+	}
+	return val, nil
 }
 
 // Front retrieves the first element from the queue, a
 // boolean value signals that the resulting value is not a zero value
-func (d *Deque[T]) Front() (T, bool) {
+func (d *Deque[T]) Front() (T, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
+	const fancName = "(*Deque[T]).Front"
+
 	if d.list.Len() == 0 {
-		return zeroval[T](), false
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
 	}
 
-	e := d.list.Front()
-	if e == nil {
-		return zeroval[T](), false
-	}
+	elem := d.list.Front()
 
-	val, ok := e.Value.(T)
-	return val, ok
+	val, ok := elem.Value.(T)
+	if !ok {
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrTypeAssertion)
+	}
+	return val, nil
 }
 
 // Back retrieves the last element from the queue, a
 // boolean value signals that the resulting value is not a zero value
-func (d *Deque[T]) Back() (T, bool) {
+func (d *Deque[T]) Back() (T, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+	const fancName = "(*Deque[T]).Back"
 
 	if d.list.Len() == 0 {
-		return zeroval[T](), false
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
 	}
 
-	e := d.list.Back()
-	if e == nil {
-		return zeroval[T](), false
-	}
+	elem := d.list.Back()
 
-	val, ok := e.Value.(T)
-	return val, ok
+	val, ok := elem.Value.(T)
+	if !ok {
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrTypeAssertion)
+	}
+	return val, nil
 }
 
 // Clear removes all elements from queue
@@ -211,50 +232,42 @@ func (d *Deque[T]) Get(index int) (T, bool) {
 
 // Remove removes e from d.list if e is an element of list d.list. It returns the element
 // value e.Value. The element must not be nil and must belong to this deque.
-func (d *Deque[T]) Remove(e *list.Element) (T, bool) {
+func (d *Deque[T]) Remove(e *list.Element) (T, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	const fancName = "(*Deque[T]).Remove"
 
-	if e == nil || d.list.Len() == 0 {
-		return zeroval[T](), false
+	if e == nil {
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrNilElem)
 	}
 
-	// Optimization: choosing which end to start the search from
-	pos := d.GetElementPosition(e)
-	if pos < 0 {
-		return zeroval[T](), false
+	if d.list.Len() == 0 {
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
 	}
 
+	// Check if the element belongs to this list by walking the list
 	found := false
-
-	if pos < d.list.Len()/2 {
-		// Find from start
-		for current := d.list.Front(); current != nil; current = current.Next() {
-			if current == e {
-				found = true
-				break
-			}
-		}
-	} else {
-		// Find from end
-		for current := d.list.Back(); current != nil; current = current.Prev() {
-			if current == e {
-				found = true
-				break
-			}
+	for current := d.list.Front(); current != nil; current = current.Next() {
+		if current == e {
+			found = true
+			break
 		}
 	}
 
-	if found {
-		val, ok := e.Value.(T)
-		d.list.Remove(e)
-		return val, ok
+	if !found {
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrNotFoundElem)
 	}
 
-	return zeroval[T](), false
+	val, ok := e.Value.(T)
+	d.list.Remove(e)
+	if !ok {
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrTypeAssertion)
+	}
+
+	return val, nil
 }
 
-// Helper function for determining the position of an element
+// Helper function for determining the position of an element (return -1 if not founn)
 func (d *Deque[T]) GetElementPosition(e *list.Element) int {
 	pos := 0
 	for current := d.list.Front(); current != nil; current = current.Next() {
