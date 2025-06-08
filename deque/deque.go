@@ -6,6 +6,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"iter"
 	"sync"
 )
 
@@ -17,26 +18,27 @@ var (
 	ErrNilElem       = errors.New("element must not be nil")
 )
 
-// structure of a dequeue
+// Deque represents a double-ended queue (deque) data structure
+// that is thread-safe and generic over type T
 type Deque[T any] struct {
 	list *list.List
 	mu   sync.RWMutex
 }
 
-// New returns new instance of Deque struct
+// New creates and returns a new empty instance of Deque
 func New[T any]() *Deque[T] {
 	return &Deque[T]{
 		list: list.New(),
 	}
 }
 
-// zeroval return zero value of type T (helper func)
+// zeroval returns the zero value for type T
 func zeroval[T any]() T {
 	var zero T
 	return zero
 }
 
-// Len returns the total length of all elements in the queue
+// Len returns the number of elements in the deque
 func (d *Deque[T]) Len() int {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -44,7 +46,7 @@ func (d *Deque[T]) Len() int {
 	return d.list.Len()
 }
 
-// IsEmpty returns a boolean value that signals that the list is empty
+// IsEmpty returns true if the deque contains no elements
 func (d *Deque[T]) IsEmpty() bool {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -52,7 +54,8 @@ func (d *Deque[T]) IsEmpty() bool {
 	return d.list.Len() == 0
 }
 
-// PushFront adds the listed values ​​to the front of the queue
+// PushFront adds one or more values to the front of the deque
+// in reverse order (last input becomes first in deque)
 func (d *Deque[T]) PushFront(values ...T) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -62,7 +65,8 @@ func (d *Deque[T]) PushFront(values ...T) {
 	}
 }
 
-// PushBack adds the listed values ​​to the end of the queue
+// PushBack appends one or more values to the end of the deque
+// in the same order they were provided
 func (d *Deque[T]) PushBack(values ...T) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -72,8 +76,8 @@ func (d *Deque[T]) PushBack(values ...T) {
 	}
 }
 
-// PopFront retrieves and removes the first element from the queue, a
-// boolean value signals that the resulting value is not a zero value
+// PopFront removes and returns the first element from the deque.
+// Returns an error if the deque is empty or type assertion fails.
 func (d *Deque[T]) PopFront() (T, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -93,8 +97,8 @@ func (d *Deque[T]) PopFront() (T, error) {
 	return val, nil
 }
 
-// PopBack retrieves and removes the last element from the queue, a
-// boolean value signals that the resulting value is not a zero value
+// PopBack removes and returns the last element from the deque.
+// Returns an error if the deque is empty or type assertion fails.
 func (d *Deque[T]) PopBack() (T, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -114,8 +118,8 @@ func (d *Deque[T]) PopBack() (T, error) {
 	return val, nil
 }
 
-// Front retrieves the first element from the queue, a
-// boolean value signals that the resulting value is not a zero value
+// Front returns the first element from the deque without removing it.
+// Returns an error if the deque is empty or type assertion fails.
 func (d *Deque[T]) Front() (T, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -135,8 +139,8 @@ func (d *Deque[T]) Front() (T, error) {
 	return val, nil
 }
 
-// Back retrieves the last element from the queue, a
-// boolean value signals that the resulting value is not a zero value
+// Back returns the last element from the deque without removing it.
+// Returns an error if the deque is empty or type assertion fails.
 func (d *Deque[T]) Back() (T, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -155,7 +159,8 @@ func (d *Deque[T]) Back() (T, error) {
 	return val, nil
 }
 
-// Clear removes all elements from queue
+// Clear removes all elements from the deque and returns the count
+// of elements that were removed
 func (d *Deque[T]) Clear() int {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -176,7 +181,8 @@ func (d *Deque[T]) Clear() int {
 	return cleared
 }
 
-// ToArray converts all values ​​from a queue into an array
+// ToArray converts the deque contents into a slice of type T
+// Returns an empty slice if the deque is empty
 func (d *Deque[T]) ToArray() []T {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -198,8 +204,9 @@ func (d *Deque[T]) ToArray() []T {
 	return arr
 }
 
-// Get returns the value of the element from the list under the passed index, the boolean
-// value signals the success of the retrieval
+// Get retrieves the element at the specified index without removing it.
+// Returns the value and true if successful, zero value and false otherwise.
+// The operation is optimized by traversing from the closer end (front or back).
 func (d *Deque[T]) Get(index int) (T, bool) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -230,8 +237,9 @@ func (d *Deque[T]) Get(index int) (T, bool) {
 	return val, ok
 }
 
-// Remove removes e from d.list if e is an element of list d.list. It returns the element
-// value e.Value. The element must not be nil and must belong to this deque.
+// Remove removes the specified element from the deque if it exists.
+// Returns the element's value or an error if the element is nil,
+// doesn't belong to this deque, or type assertion fails.
 func (d *Deque[T]) Remove(e *list.Element) (T, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -267,7 +275,8 @@ func (d *Deque[T]) Remove(e *list.Element) (T, error) {
 	return val, nil
 }
 
-// Helper function for determining the position of an element (return -1 if not founn)
+// GetElementPosition returns the index of the specified element in the deque.
+// Returns -1 if the element is not found in the deque.
 func (d *Deque[T]) GetElementPosition(e *list.Element) int {
 	pos := 0
 	for current := d.list.Front(); current != nil; current = current.Next() {
@@ -277,4 +286,149 @@ func (d *Deque[T]) GetElementPosition(e *list.Element) int {
 		pos++
 	}
 	return -1
+}
+
+// ContainsElement checks if the given list.Element `e` exists in the deque.
+// Returns true if the element is found, false otherwise
+func (d *Deque[T]) ContainsElement(e *list.Element) bool {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	found := false
+	for current := d.list.Front(); current != nil; current = current.Next() {
+		if current == e {
+			found = true
+			break
+		}
+	}
+	return found
+}
+
+// Reverse reverses the order of elements in the deque in-place.
+// If the deque is empty or has only one element, it does nothing
+func (d *Deque[T]) Reverse() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.list.Len() == 0 || d.list.Len() == 1 {
+		return
+	}
+
+	reversedList := list.New()
+
+	for current := d.list.Back(); current != nil; current = current.Prev() {
+		reversedList.PushBack(current.Value)
+	}
+
+	d.list.Init()
+
+	for current := reversedList.Front(); current != nil; current = current.Next() {
+		d.list.PushBack(current.Value)
+	}
+}
+
+// Count returns the number of occurrences of `target` in the deque.
+// Uses the provided `equalFunc` to determine equality between elements
+func (d *Deque[T]) Count(target T, equalFunc func(T, T) bool) int {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	count := 0
+	for current := d.list.Front(); current != nil; current = current.Next() {
+		if equalFunc(current.Value.(T), target) {
+			count++
+		}
+	}
+	return count
+}
+
+// Iterator returns a forward iterator (yields elements from front to back).
+// The iterator terminates if the yield function returns false
+func (d *Deque[T]) Iterator() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		d.mu.RLock()
+		defer d.mu.RUnlock()
+
+		if d.list.Len() == 0 {
+			return
+		}
+
+		for current := d.list.Front(); current != nil; current = current.Next() {
+			if !yield(current.Value.(T)) {
+				return
+			}
+		}
+	}
+}
+
+// DescendingIterator returns a reverse iterator (yields elements from back to front).
+// The iterator terminates if the yield function returns false.
+func (d *Deque[T]) DescendingeIterator() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		d.mu.RLock()
+		defer d.mu.RUnlock()
+
+		if d.list.Len() == 0 {
+			return
+		}
+
+		for current := d.list.Back(); current != nil; current = current.Prev() {
+			if !yield(current.Value.(T)) {
+				return
+			}
+		}
+	}
+}
+
+// Rotate rotates the deque by n positions.
+// A positive n rotates elements to the right (toward the back),
+// while a negative n rotates elements to the left (toward the front).
+// If the deque is empty, has only one element, or n is 0, it does nothing.
+// This operation is thread-safe
+func (d *Deque[T]) Rotate(n int) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	length := d.list.Len()
+	if length <= 1 || n == 0 {
+		return
+	}
+
+	// Normalize n to be within [0, length)
+	n = n % length
+	if n < 0 {
+		n += length
+	}
+
+	// Optimize by rotating in the most efficient direction
+	if n <= length/2 {
+		d.rotateRight(n)
+	} else {
+		d.rotateLeft(length - n)
+	}
+
+}
+
+// rotateRight performs a right rotation by moving the last n elements
+// to the front of the deque.
+// Example: [1, 2, 3, 4] rotated right by 1 becomes [4, 1, 2, 3].
+// Assumes n is positive and caller holds the lock
+func (d *Deque[T]) rotateRight(n int) {
+	for i := 0; i < n; i++ {
+		elem := d.list.Back()
+		d.list.PushFront(elem.Value)
+		d.list.Remove(elem)
+	}
+}
+
+// rotateLeft performs a left rotation by moving the first n elements
+// to the back of the deque.
+// Example: [1, 2, 3, 4] rotated left by 1 becomes [2, 3, 4, 1].
+// Assumes n is positive and caller holds the lock
+func (d *Deque[T]) rotateLeft(n int) {
+	for i := n; i > 0; i-- {
+		elem := d.list.Front()
+		d.list.PushBack(elem.Value)
+		d.list.Remove(elem)
+	}
 }
