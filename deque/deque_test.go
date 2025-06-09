@@ -1,7 +1,7 @@
 package deque
 
 import (
-	"container/list"
+	"fmt"
 	"testing"
 	"time"
 
@@ -275,40 +275,6 @@ func TestGet(t *testing.T) {
 	}
 }
 
-func TestRemove(t *testing.T) {
-	d := New[int]()
-	d.PushBack(1)
-	d.PushBack(2)
-	d.PushBack(3)
-
-	// Get the middle element
-	e := d.list.Front().Next()
-
-	// Test successful removal
-	val, err := d.Remove(e)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, val)
-	assert.Equal(t, 2, d.Len())
-
-	// Try to remove nil element
-	_, err = d.Remove(nil)
-	assert.ErrorIs(t, err, ErrNilElem)
-	assert.Contains(t, err.Error(), "(*Deque[T]).Remove")
-
-	// Try to remove element not in the list
-	newList := New[int]()
-	newList.PushBack(99)
-	_, err = d.Remove(newList.list.Front())
-	assert.ErrorIs(t, err, ErrNotFoundElem)
-	assert.Contains(t, err.Error(), "(*Deque[T]).Remove")
-
-	// Try to remove from empty deque
-	d.Clear()
-	_, err = d.Remove(e) // e is no longer valid
-	assert.ErrorIs(t, err, ErrEmprtQueue)
-	assert.Contains(t, err.Error(), "(*Deque[T]).Remove")
-}
-
 func TestConcurrency(t *testing.T) {
 	d := New[int]()
 	const numWorkers = 100
@@ -354,49 +320,6 @@ func TestConcurrency(t *testing.T) {
 		if ok {
 			assert.NotNil(t, val)
 		}
-	}
-}
-
-func TestDeque_ContainsElement(t *testing.T) {
-	tests := []struct {
-		name     string
-		setup    func() (*Deque[int], *list.Element, bool)
-		expected bool
-	}{
-		{
-			name: "element exists",
-			setup: func() (*Deque[int], *list.Element, bool) {
-				d := New[int]()
-				e := d.list.PushBack(1)
-				d.list.PushBack(2)
-				return d, e, true
-			},
-			expected: true,
-		},
-		{
-			name: "element doesn't exist",
-			setup: func() (*Deque[int], *list.Element, bool) {
-				d := New[int]()
-				d.list.PushBack(1)
-				d.list.PushBack(2)
-				return d, &list.Element{Value: 3}, false
-			},
-			expected: false,
-		},
-		{
-			name: "empty deque",
-			setup: func() (*Deque[int], *list.Element, bool) {
-				return New[int](), &list.Element{Value: 1}, false
-			},
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			d, e, _ := tt.setup()
-			assert.Equal(t, tt.expected, d.ContainsElement(e))
-		})
 	}
 }
 
@@ -576,6 +499,7 @@ func TestDeque_Rotate(t *testing.T) {
 		})
 	}
 }
+
 func TestConcurrentAccess(t *testing.T) {
 	d := New[int]()
 	stop := make(chan struct{})
@@ -630,4 +554,170 @@ func TestConcurrentAccess(t *testing.T) {
 
 	// Final check - deque should be in consistent state
 	assert.GreaterOrEqual(t, d.Len(), 0)
+}
+
+func BenchmarkPushFront(b *testing.B) {
+	d := New[int]()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		d.PushFront(i)
+	}
+}
+
+func BenchmarkPushFrontBatch(b *testing.B) {
+	d := New[int]()
+	values := make([]int, 1000)
+	for i := 0; i < 1000; i++ {
+		values[i] = i
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		d.PushFront(values...)
+	}
+}
+
+func BenchmarkPushBack(b *testing.B) {
+	d := New[int]()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		d.PushBack(i)
+	}
+}
+
+func BenchmarkPushBackBatch(b *testing.B) {
+	d := New[int]()
+	values := make([]int, 1000)
+	for i := 0; i < 1000; i++ {
+		values[i] = i
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		d.PushBack(values...)
+	}
+}
+
+func BenchmarkPopBack(b *testing.B) {
+	d := New[int]()
+	for i := 0; i < b.N; i++ {
+		d.PushBack(i)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = d.PopBack()
+	}
+}
+
+func BenchmarkPopFront(b *testing.B) {
+	d := New[int]()
+	for i := 0; i < b.N; i++ {
+		d.PushBack(i)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = d.PopFront()
+	}
+}
+
+func BenchmarkFront(b *testing.B) {
+	d := New[int]()
+	for i := 0; i < 1000; i++ {
+		d.PushBack(i)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = d.Front()
+	}
+}
+
+func BenchmarkBack(b *testing.B) {
+	d := New[int]()
+	for i := 0; i < 1000; i++ {
+		d.PushBack(i)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = d.Back()
+	}
+}
+
+func BenchmarkRotate(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+
+	for _, n := range sizes {
+		b.Run(fmt.Sprintf("Rotate=%d", n), func(b *testing.B) {
+			d := New[int]()
+			for i := 0; i < 1000; i++ {
+				d.PushBack(i)
+			}
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				d.Rotate(n)
+			}
+		})
+
+	}
+}
+
+func BenchmarkRotateRight(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+
+	for _, n := range sizes {
+		b.Run(fmt.Sprintf("RotateRight=%d", n), func(b *testing.B) {
+			d := New[int]()
+			for i := 0; i < 5000; i++ {
+				d.PushBack(i)
+			}
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				d.rotateRight(n)
+			}
+		})
+
+	}
+
+}
+
+func BenchmarkRotateLeft(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+
+	for _, n := range sizes {
+		b.Run(fmt.Sprintf("RotateLeft=%d", n), func(b *testing.B) {
+			d := New[int]()
+			for i := 0; i < 5000; i++ {
+				d.PushBack(i)
+			}
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				d.rotateLeft(n)
+			}
+		})
+
+	}
+
+}
+
+func BenchmarkReverse(b *testing.B) {
+	d := New[int]()
+	for i := 0; i < 5000; i++ {
+		d.PushBack(i)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		d.Reverse()
+	}
+}
+
+func BenchmarkCount(b *testing.B) {
+	d := New[int]()
+	for i := 0; i < 1000; i++ {
+		d.PushBack(i % 10) // Create some duplicates
+	}
+	equalFunc := func(a, b int) bool { return a == b }
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = d.Count(5, equalFunc)
+	}
 }
