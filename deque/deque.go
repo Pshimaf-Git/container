@@ -237,44 +237,6 @@ func (d *Deque[T]) Get(index int) (T, bool) {
 	return val, ok
 }
 
-// Remove removes the specified element from the deque if it exists.
-// Returns the element's value or an error if the element is nil,
-// doesn't belong to this deque, or type assertion fails.
-func (d *Deque[T]) Remove(e *list.Element) (T, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	const fancName = "(*Deque[T]).Remove"
-
-	if e == nil {
-		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrNilElem)
-	}
-
-	if d.list.Len() == 0 {
-		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
-	}
-
-	// Check if the element belongs to this list by walking the list
-	found := false
-	for current := d.list.Front(); current != nil; current = current.Next() {
-		if current == e {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrNotFoundElem)
-	}
-
-	val, ok := e.Value.(T)
-	d.list.Remove(e)
-	if !ok {
-		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrTypeAssertion)
-	}
-
-	return val, nil
-}
-
 // GetElementPosition returns the index of the specified element in the deque.
 // Returns -1 if the element is not found in the deque.
 func (d *Deque[T]) GetElementPosition(e *list.Element) int {
@@ -288,42 +250,23 @@ func (d *Deque[T]) GetElementPosition(e *list.Element) int {
 	return -1
 }
 
-// ContainsElement checks if the given list.Element `e` exists in the deque.
-// Returns true if the element is found, false otherwise
-func (d *Deque[T]) ContainsElement(e *list.Element) bool {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	found := false
-	for current := d.list.Front(); current != nil; current = current.Next() {
-		if current == e {
-			found = true
-			break
-		}
-	}
-	return found
-}
-
 // Reverse reverses the order of elements in the deque in-place.
 // If the deque is empty or has only one element, it does nothing
 func (d *Deque[T]) Reverse() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.list.Len() == 0 || d.list.Len() == 1 {
+	if d.list.Len() <= 1 {
 		return
 	}
 
-	reversedList := list.New()
-
-	for current := d.list.Back(); current != nil; current = current.Prev() {
-		reversedList.PushBack(current.Value)
-	}
-
-	d.list.Init()
-
-	for current := reversedList.Front(); current != nil; current = current.Next() {
-		d.list.PushBack(current.Value)
+	// In-place reversal without new list allocation
+	front := d.list.Front()
+	back := d.list.Back()
+	for i := 0; i < d.list.Len()/2; i++ {
+		front.Value, back.Value = back.Value, front.Value
+		front = front.Next()
+		back = back.Prev()
 	}
 }
 
@@ -390,7 +333,7 @@ func (d *Deque[T]) Rotate(n int) {
 	defer d.mu.Unlock()
 
 	length := d.list.Len()
-	if length <= 1 || n == 0 {
+	if d.list.Len() <= 1 || n == 0 {
 		return
 	}
 
@@ -415,9 +358,7 @@ func (d *Deque[T]) Rotate(n int) {
 // Assumes n is positive and caller holds the lock
 func (d *Deque[T]) rotateRight(n int) {
 	for i := 0; i < n; i++ {
-		elem := d.list.Back()
-		d.list.PushFront(elem.Value)
-		d.list.Remove(elem)
+		d.list.MoveToFront(d.list.Back())
 	}
 }
 
@@ -427,8 +368,6 @@ func (d *Deque[T]) rotateRight(n int) {
 // Assumes n is positive and caller holds the lock
 func (d *Deque[T]) rotateLeft(n int) {
 	for i := n; i > 0; i-- {
-		elem := d.list.Front()
-		d.list.PushBack(elem.Value)
-		d.list.Remove(elem)
+		d.list.MoveToBack(d.list.Front())
 	}
 }
