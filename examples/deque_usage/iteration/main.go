@@ -12,13 +12,13 @@ func main() {
 
 	// Forward iteration
 	fmt.Println("Forward iteration:")
-	for v := range dq.Iterator() {
-		fmt.Println(v)
+	for i, v := range dq.Iterator() {
+		fmt.Printf("Index: %d Value: %v\n", i, v)
 	}
 
 	// Reverse iteration
 	fmt.Println("\nReverse iteration:")
-	for v := range dq.DescendingeIterator() {
-		fmt.Println(v)
+	for i, v := range dq.DescendingeIterator() {
+		fmt.Printf("Index: %d Value: %v\n", i, v)
 	}
 }
