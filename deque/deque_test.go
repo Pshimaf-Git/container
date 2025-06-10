@@ -365,25 +365,30 @@ func TestDeque_Reverse(t *testing.T) {
 }
 
 func TestDeque_Iterator(t *testing.T) {
+	type pair struct {
+		i int
+		v int
+	}
+
 	tests := []struct {
 		name     string
 		input    []int
-		expected []int
+		expected []pair
 	}{
 		{
 			name:     "normal iteration",
 			input:    []int{1, 2, 3},
-			expected: []int{1, 2, 3},
+			expected: []pair{{0, 1}, {1, 2}, {2, 3}},
 		},
 		{
 			name:     "empty deque",
 			input:    []int{},
-			expected: []int{},
+			expected: []pair{},
 		},
 		{
 			name:     "single element",
 			input:    []int{1},
-			expected: []int{1},
+			expected: []pair{{0, 1}},
 		},
 	}
 
@@ -394,9 +399,9 @@ func TestDeque_Iterator(t *testing.T) {
 				d.list.PushBack(v)
 			}
 
-			var result = []int{}
-			for v := range d.Iterator() {
-				result = append(result, v)
+			var result = []pair{}
+			for i, v := range d.Iterator() {
+				result = append(result, pair{i, v})
 			}
 			assert.Equal(t, tt.expected, result)
 		})
@@ -404,25 +409,30 @@ func TestDeque_Iterator(t *testing.T) {
 }
 
 func TestDeque_DescendingIterator(t *testing.T) {
+	type pair struct {
+		i int
+		v int
+	}
+
 	tests := []struct {
 		name     string
 		input    []int
-		expected []int
+		expected []pair
 	}{
 		{
 			name:     "normal reverse iteration",
 			input:    []int{1, 2, 3},
-			expected: []int{3, 2, 1},
+			expected: []pair{{0, 1}, {1, 2}, {2, 3}},
 		},
 		{
 			name:     "empty deque",
 			input:    []int{},
-			expected: []int{},
+			expected: []pair{},
 		},
 		{
 			name:     "single element",
 			input:    []int{1},
-			expected: []int{1},
+			expected: []pair{{0, 1}},
 		},
 	}
 
@@ -433,10 +443,11 @@ func TestDeque_DescendingIterator(t *testing.T) {
 				d.list.PushBack(v)
 			}
 
-			var result = []int{}
-			for v := range d.DescendingeIterator() {
-				result = append(result, v)
+			var result = []pair{}
+			for i, v := range d.DescendingeIterator() {
+				result = append(result, pair{i, v})
 			}
+
 			assert.Equal(t, tt.expected, result)
 		})
 	}
