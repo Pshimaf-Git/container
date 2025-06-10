@@ -287,8 +287,8 @@ func (d *Deque[T]) Count(target T, equalFunc func(T, T) bool) int {
 
 // Iterator returns a forward iterator (yields elements from front to back).
 // The iterator terminates if the yield function returns false
-func (d *Deque[T]) Iterator() iter.Seq[T] {
-	return func(yield func(T) bool) {
+func (d *Deque[T]) Iterator() iter.Seq2[int, T] {
+	return func(yield func(int, T) bool) {
 		d.mu.Lock()
 		defer d.mu.Unlock()
 
@@ -296,18 +296,20 @@ func (d *Deque[T]) Iterator() iter.Seq[T] {
 			return
 		}
 
+		index := 0
 		for current := d.list.Front(); current != nil; current = current.Next() {
-			if !yield(current.Value.(T)) {
+			if !yield(index, current.Value.(T)) {
 				return
 			}
+			index++
 		}
 	}
 }
 
-// DescendingIterator returns a reverse iterator (yields elements from back to front).
+// DescendingeIterator returns a reverse iterator (yields elements from back to front).
 // The iterator terminates if the yield function returns false.
-func (d *Deque[T]) DescendingeIterator() iter.Seq[T] {
-	return func(yield func(T) bool) {
+func (d *Deque[T]) DescendingeIterator() iter.Seq2[int, T] {
+	return func(yield func(int, T) bool) {
 		d.mu.Lock()
 		defer d.mu.Unlock()
 
@@ -315,10 +317,12 @@ func (d *Deque[T]) DescendingeIterator() iter.Seq[T] {
 			return
 		}
 
-		for current := d.list.Back(); current != nil; current = current.Prev() {
-			if !yield(current.Value.(T)) {
+		index := 0
+		for current := d.list.Front(); current != nil; current = current.Next() {
+			if !yield(index, current.Value.(T)) {
 				return
 			}
+			index++
 		}
 	}
 }
