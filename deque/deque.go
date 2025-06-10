@@ -22,7 +22,7 @@ var (
 // that is thread-safe and generic over type T
 type Deque[T any] struct {
 	list *list.List
-	mu   sync.RWMutex
+	mu   sync.Mutex
 }
 
 // New creates and returns a new empty instance of Deque
@@ -40,16 +40,16 @@ func zeroval[T any]() T {
 
 // Len returns the number of elements in the deque
 func (d *Deque[T]) Len() int {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	return d.list.Len()
 }
 
 // IsEmpty returns true if the deque contains no elements
 func (d *Deque[T]) IsEmpty() bool {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	return d.list.Len() == 0
 }
@@ -121,8 +121,8 @@ func (d *Deque[T]) PopBack() (T, error) {
 // Front returns the first element from the deque without removing it.
 // Returns an error if the deque is empty or type assertion fails.
 func (d *Deque[T]) Front() (T, error) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	const fancName = "(*Deque[T]).Front"
 
@@ -142,8 +142,8 @@ func (d *Deque[T]) Front() (T, error) {
 // Back returns the last element from the deque without removing it.
 // Returns an error if the deque is empty or type assertion fails.
 func (d *Deque[T]) Back() (T, error) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	const fancName = "(*Deque[T]).Back"
 
 	if d.list.Len() == 0 {
@@ -208,8 +208,8 @@ func (d *Deque[T]) ToArray() []T {
 // Returns the value and true if successful, zero value and false otherwise.
 // The operation is optimized by traversing from the closer end (front or back).
 func (d *Deque[T]) Get(index int) (T, bool) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	if index < 0 || index >= d.list.Len() || d.list.Len() == 0 {
 		return zeroval[T](), false
@@ -273,8 +273,8 @@ func (d *Deque[T]) Reverse() {
 // Count returns the number of occurrences of `target` in the deque.
 // Uses the provided `equalFunc` to determine equality between elements
 func (d *Deque[T]) Count(target T, equalFunc func(T, T) bool) int {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	count := 0
 	for current := d.list.Front(); current != nil; current = current.Next() {
@@ -289,8 +289,8 @@ func (d *Deque[T]) Count(target T, equalFunc func(T, T) bool) int {
 // The iterator terminates if the yield function returns false
 func (d *Deque[T]) Iterator() iter.Seq[T] {
 	return func(yield func(T) bool) {
-		d.mu.RLock()
-		defer d.mu.RUnlock()
+		d.mu.Lock()
+		defer d.mu.Unlock()
 
 		if d.list.Len() == 0 {
 			return
@@ -308,8 +308,8 @@ func (d *Deque[T]) Iterator() iter.Seq[T] {
 // The iterator terminates if the yield function returns false.
 func (d *Deque[T]) DescendingeIterator() iter.Seq[T] {
 	return func(yield func(T) bool) {
-		d.mu.RLock()
-		defer d.mu.RUnlock()
+		d.mu.Lock()
+		defer d.mu.Unlock()
 
 		if d.list.Len() == 0 {
 			return
