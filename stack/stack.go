@@ -47,6 +47,10 @@ func (s *Stack[T]) Size() uint32 {
 	return s.size.Load()
 }
 
+func (s *Stack[T]) Empty() bool {
+	return s.size.Load() == 0
+}
+
 // Push adds a new value to the top of the stack.
 // This operation is atomic and thread-safe, using compare-and-swap (CAS) to handle
 // concurrent access.
