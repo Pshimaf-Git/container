@@ -22,7 +22,7 @@ var (
 // that is thread-safe and generic over type T
 type Deque[T any] struct {
 	list *list.List
-	mu   sync.Mutex
+	mu   sync.RWMutex
 }
 
 // New creates and returns a new empty instance of Deque
@@ -40,16 +40,16 @@ func zeroval[T any]() T {
 
 // Len returns the number of elements in the deque
 func (d *Deque[T]) Len() int {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
 	return d.list.Len()
 }
 
 // IsEmpty returns true if the deque contains no elements
 func (d *Deque[T]) IsEmpty() bool {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
 	return d.list.Len() == 0
 }
@@ -121,8 +121,8 @@ func (d *Deque[T]) PopBack() (T, error) {
 // Front returns the first element from the deque without removing it.
 // Returns an error if the deque is empty or type assertion fails.
 func (d *Deque[T]) Front() (T, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
 	const fancName = "(*Deque[T]).Front"
 
@@ -142,8 +142,8 @@ func (d *Deque[T]) Front() (T, error) {
 // Back returns the last element from the deque without removing it.
 // Returns an error if the deque is empty or type assertion fails.
 func (d *Deque[T]) Back() (T, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	const fancName = "(*Deque[T]).Back"
 
 	if d.list.Len() == 0 {
@@ -184,8 +184,8 @@ func (d *Deque[T]) Clear() int {
 // ToArray converts the deque contents into a slice of type T
 // Returns an empty slice if the deque is empty
 func (d *Deque[T]) ToArray() []T {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
 	if d.list.Len() == 0 {
 		return []T{}
@@ -208,8 +208,8 @@ func (d *Deque[T]) ToArray() []T {
 // Returns the value and true if successful, zero value and false otherwise.
 // The operation is optimized by traversing from the closer end (front or back).
 func (d *Deque[T]) Get(index int) (T, bool) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
 	if index < 0 || index >= d.list.Len() || d.list.Len() == 0 {
 		return zeroval[T](), false
@@ -237,19 +237,6 @@ func (d *Deque[T]) Get(index int) (T, bool) {
 	return val, ok
 }
 
-// GetElementPosition returns the index of the specified element in the deque.
-// Returns -1 if the element is not found in the deque.
-func (d *Deque[T]) GetElementPosition(e *list.Element) int {
-	pos := 0
-	for current := d.list.Front(); current != nil; current = current.Next() {
-		if current == e {
-			return pos
-		}
-		pos++
-	}
-	return -1
-}
-
 // Reverse reverses the order of elements in the deque in-place.
 // If the deque is empty or has only one element, it does nothing
 func (d *Deque[T]) Reverse() {
@@ -273,8 +260,8 @@ func (d *Deque[T]) Reverse() {
 // Count returns the number of occurrences of `target` in the deque.
 // Uses the provided `equalFunc` to determine equality between elements
 func (d *Deque[T]) Count(target T, equalFunc func(T, T) bool) int {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
 	count := 0
 	for current := d.list.Front(); current != nil; current = current.Next() {
