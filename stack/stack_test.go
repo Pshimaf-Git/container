@@ -1,8 +1,12 @@
 package stack
 
 import (
+	"fmt"
+	"math/rand"
+	"runtime"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestNew(t *testing.T) {
@@ -344,5 +348,108 @@ func TestConcurrentPushPop(t *testing.T) {
 	size := s.Size()
 	if size > uint32(numRoutines) {
 		t.Errorf("Size() = %d, want close to 0 after concurrent operations", size)
+	}
+}
+
+func BenchmarkStack_Pop(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 2000}
+
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Pop(size=%d)", size), func(b *testing.B) {
+			s := New[int]()
+			for i := 0; i < size; i++ {
+				s.Push(i)
+			}
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _ = s.Pop()
+			}
+		})
+	}
+}
+
+func BenchmarkStack_Push(b *testing.B) {
+	s := New[int]()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Push(i)
+	}
+}
+
+// operation types
+const (
+	pushOp = iota
+	popOp
+	sizeOp
+	emptyOp
+	numOps // total number of operations
+)
+
+func BenchmarkStackMixedOperations(b *testing.B) {
+	cpuConfigs := []int{1, 2, 4, 8, runtime.NumCPU()}
+	operationMix := []int{pushOp, popOp, sizeOp, emptyOp} // base operation mix
+
+	for _, cpus := range cpuConfigs {
+		b.Run("", func(b *testing.B) {
+			runtime.GOMAXPROCS(cpus)
+			benchmarkMixedOperations(b, cpus, operationMix)
+		})
+	}
+}
+
+func benchmarkMixedOperations(b *testing.B, cpus int, operationMix []int) {
+	s := New[int]()
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		localRand := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for pb.Next() {
+			// Randomly select an operation based on our mix
+			op := operationMix[localRand.Intn(len(operationMix))]
+
+			switch op {
+			case pushOp:
+				s.Push(localRand.Intn(1000))
+			case popOp:
+				s.Pop()
+			case sizeOp:
+				s.Size()
+			case emptyOp:
+				s.Empty()
+			}
+		}
+	})
+}
+
+func BenchmarkStackRealisticWorkload(b *testing.B) {
+	cpuConfigs := []int{1, 2, 4, 8, runtime.NumCPU()}
+	// More realistic operation distribution: 40% push, 40% pop, 10% size, 10% empty
+	operationMix := make([]int, 0, 100)
+	operationMix = append(operationMix, make([]int, 40)...) // push
+	operationMix = append(operationMix, make([]int, 40)...) // pop
+	operationMix = append(operationMix, make([]int, 10)...) // size
+	operationMix = append(operationMix, make([]int, 10)...) // empty
+
+	for i := 0; i < 40; i++ {
+		operationMix[i] = pushOp
+	}
+	for i := 40; i < 80; i++ {
+		operationMix[i] = popOp
+	}
+	for i := 80; i < 90; i++ {
+		operationMix[i] = sizeOp
+	}
+	for i := 90; i < 100; i++ {
+		operationMix[i] = emptyOp
+	}
+
+	for _, cpus := range cpuConfigs {
+		b.Run("", func(b *testing.B) {
+			runtime.GOMAXPROCS(cpus)
+			benchmarkMixedOperations(b, cpus, operationMix)
+		})
 	}
 }
