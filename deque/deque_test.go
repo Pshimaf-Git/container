@@ -75,7 +75,7 @@ func TestPopFront(t *testing.T) {
 			"empty deque",
 			func() *Deque[int] { return New[int]() },
 			0,
-			ErrEmprtQueue,
+			ErrEmptyQueue,
 		},
 		{
 			"single element",
@@ -128,7 +128,7 @@ func TestPopBack(t *testing.T) {
 			"empty deque",
 			func() *Deque[int] { return New[int]() },
 			0,
-			ErrEmprtQueue,
+			ErrEmptyQueue,
 		},
 		{
 			"single element",
@@ -173,7 +173,7 @@ func TestPopBack(t *testing.T) {
 func TestFront(t *testing.T) {
 	d := New[int]()
 	_, err := d.Front()
-	assert.ErrorIs(t, err, ErrEmprtQueue)
+	assert.ErrorIs(t, err, ErrEmptyQueue)
 
 	d.PushBack(1)
 	d.PushBack(2)
@@ -186,7 +186,7 @@ func TestFront(t *testing.T) {
 func TestBack(t *testing.T) {
 	d := New[int]()
 	_, err := d.Back()
-	assert.ErrorIs(t, err, ErrEmprtQueue)
+	assert.ErrorIs(t, err, ErrEmptyQueue)
 
 	d.PushBack(1)
 	d.PushBack(2)

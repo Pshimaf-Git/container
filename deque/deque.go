@@ -12,7 +12,7 @@ import (
 
 var (
 	ErrTypeAssertion = errors.New("type assertion failed")
-	ErrEmprtQueue    = errors.New("queue is empty")
+	ErrEmptyQueue    = errors.New("queue is empty")
 )
 
 // Deque represents a double-ended queue (deque) data structure
@@ -81,7 +81,7 @@ func (d *Deque[T]) PopFront() (T, error) {
 	const fancName = "(*Deque[T]).PopFront"
 
 	if d.list.Len() == 0 {
-		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmptyQueue)
 	}
 
 	elem := d.list.Front()
@@ -102,7 +102,7 @@ func (d *Deque[T]) PopBack() (T, error) {
 	const fancName = "(*Deque[T]).PopBack"
 
 	if d.list.Len() == 0 {
-		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmptyQueue)
 	}
 
 	elem := d.list.Back()
@@ -124,7 +124,7 @@ func (d *Deque[T]) Front() (T, error) {
 	const fancName = "(*Deque[T]).Front"
 
 	if d.list.Len() == 0 {
-		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmptyQueue)
 	}
 
 	elem := d.list.Front()
@@ -144,7 +144,7 @@ func (d *Deque[T]) Back() (T, error) {
 	const fancName = "(*Deque[T]).Back"
 
 	if d.list.Len() == 0 {
-		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmprtQueue)
+		return zeroval[T](), fmt.Errorf("%s: %w", fancName, ErrEmptyQueue)
 	}
 
 	elem := d.list.Back()
