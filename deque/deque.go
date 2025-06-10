@@ -11,11 +11,8 @@ import (
 )
 
 var (
-	ErrNotFoundElem  = errors.New("not found element")
 	ErrTypeAssertion = errors.New("type assertion failed")
 	ErrEmprtQueue    = errors.New("queue is empty")
-	ErrInvalidIndex  = errors.New("invalid index")
-	ErrNilElem       = errors.New("element must not be nil")
 )
 
 // Deque represents a double-ended queue (deque) data structure
